@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>串聯與並聯開關 Demo</title>
+<style>
+  :root{
+    --bg:#f7f7f5;
+    --panel:#ffffff;
+    --line:#2d2d2d;
+    --muted:#777;
+    --off:#d8d8d8;
+    --on:#ffd84d;
+    --battery:#6c8cff;
+    --switch:#c9c9c9;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif;
+    background:var(--bg);
+    color:#222;
+  }
+  header{
+    text-align:center;
+    padding:28px 16px 10px;
+  }
+  h1{
+    margin:0 0 8px;
+    font-size:clamp(26px,4vw,40px);
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:16px;
+  }
+  .wrap{
+    width:min(1100px,94vw);
+    margin:24px auto 40px;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:22px;
+  }
+  .card{
+    background:var(--panel);
+    border-radius:18px;
+    padding:22px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+  }
+  .card h2{
+    margin:0 0 4px;
+    font-size:24px;
+  }
+  .logic{
+    color:var(--muted);
+    margin-bottom:16px;
+  }
+  svg{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+  .wire{
+    stroke:var(--line);
+    stroke-width:5;
+    fill:none;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .battery{
+    stroke:var(--line);
+    stroke-width:5;
+  }
+  .bulb{
+    stroke:var(--line);
+    stroke-width:5;
+    fill:var(--off);
+    transition:fill .2s, filter .2s;
+  }
+  .bulb.on{
+    fill:var(--on);
+    filter:drop-shadow(0 0 12px rgba(255,216,77,.95));
+  }
+  .switch-hit{
+    cursor:pointer;
+  }
+  .switch-base{
+    stroke:var(--line);
+    stroke-width:5;
+    fill:none;
+  }
+  .switch-arm{
+    stroke:var(--line);
+    stroke-width:6;
+    stroke-linecap:round;
+    transform-box:fill-box;
+    transform-origin:left center;
+    transition:transform .18s ease;
+  }
+  .switch-arm.open{
+    transform:rotate(-28deg);
+  }
+  .node{
+    fill:var(--line);
+  }
+  .status{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:12px;
+    font-weight:700;
+    text-align:center;
+    background:#efefef;
+  }
+  .status.on{
+    background:#fff3ad;
+  }
+  .controls{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  button{
+    border:0;
+    border-radius:12px;
+    padding:12px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    background:#ececec;
+  }
+  button.closed{
+    background:#ccead5;
+  }
+  .hint{
+    margin-top:10px;
+    font-size:14px;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  .stair-arm{
+    transition:all .18s ease;
+  }
+
+  @media (max-width:800px){
+    .wrap{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>串聯與並聯開關</h1>
+  <p>點擊開關，觀察燈泡是否會亮。</p>
+</header>
+
+<main class="wrap">
+  <!-- 串聯 -->
+  <section class="card">
+    <h2>兩個開關串聯</h2>
+    <div class="logic">兩個開關都閉合，燈泡才會亮。</div>
+
+    <svg viewBox="0 0 520 330" aria-label="串聯開關電路">
+      <!-- wires -->
+      <path class="wire" d="M80 250 L80 90 L155 90" />
+      <path class="wire" d="M220 90 L285 90" />
+      <path class="wire" d="M350 90 L440 90 L440 250 L340 250" />
+      <path class="wire" d="M180 250 L80 250" />
+      <path class="wire" d="M340 250 L245 250" />
+
+      <!-- battery -->
+      <line class="battery" x1="180" y1="225" x2="180" y2="275" />
+      <line class="battery" x1="210" y1="235" x2="210" y2="265" />
+      <text x="166" y="215" font-size="20">+</text>
+      <text x="205" y="215" font-size="20">−</text>
+
+      <!-- bulb -->
+      <circle id="seriesBulb" class="bulb" cx="292" cy="250" r="34"/>
+      <path class="wire" d="M274 235 Q292 215 310 235 Q292 250 310 265 Q292 285 274 265" style="stroke-width:3"/>
+
+      <!-- switch A -->
+      <g id="seriesAGroup" class="switch-hit">
+        <circle class="node" cx="155" cy="90" r="7"/>
+        <circle class="node" cx="220" cy="90" r="7"/>
+        <line id="seriesAArm" class="switch-arm open" x1="155" y1="90" x2="220" y2="90"/>
+        <rect x="138" y="55" width="98" height="70" fill="transparent"/>
+        <text x="169" y="47" font-size="18">開關 A</text>
+      </g>
+
+      <!-- switch B -->
+      <g id="seriesBGroup" class="switch-hit">
+        <circle class="node" cx="285" cy="90" r="7"/>
+        <circle class="node" cx="350" cy="90" r="7"/>
+        <line id="seriesBArm" class="switch-arm open" x1="285" y1="90" x2="350" y2="90"/>
+        <rect x="268" y="55" width="98" height="70" fill="transparent"/>
+        <text x="299" y="47" font-size="18">開關 B</text>
+      </g>
+    </svg>
+
+    <div id="seriesStatus" class="status">燈泡：熄滅</div>
+    <div class="controls">
+      <button id="seriesABtn">A：開路</button>
+      <button id="seriesBBtn">B：開路</button>
+    </div>
+    <div class="hint">串聯邏輯：A AND B</div>
+  </section>
+
+  <!-- 並聯 -->
+  <section class="card">
+    <h2>兩個開關並聯</h2>
+    <div class="logic">任一個開關閉合，燈泡就會亮。</div>
+
+    <svg viewBox="0 0 520 330" aria-label="並聯開關電路">
+      <!-- left/right trunk -->
+      <path class="wire" d="M80 250 L80 80 L150 80" />
+      <path class="wire" d="M370 80 L440 80 L440 250 L340 250" />
+      <path class="wire" d="M180 250 L80 250" />
+      <path class="wire" d="M340 250 L245 250" />
+
+      <!-- branch wires -->
+      <path class="wire" d="M150 80 L150 145" />
+      <path class="wire" d="M370 80 L370 145" />
+      <path class="wire" d="M150 145 L215 145" />
+      <path class="wire" d="M280 145 L370 145" />
+      <path class="wire" d="M150 80 L215 80" />
+      <path class="wire" d="M280 80 L370 80" />
+
+      <!-- battery -->
+      <line class="battery" x1="180" y1="225" x2="180" y2="275" />
+      <line class="battery" x1="210" y1="235" x2="210" y2="265" />
+      <text x="166" y="215" font-size="20">+</text>
+      <text x="205" y="215" font-size="20">−</text>
+
+      <!-- bulb -->
+      <circle id="parallelBulb" class="bulb" cx="292" cy="250" r="34"/>
+      <path class="wire" d="M274 235 Q292 215 310 235 Q292 250 310 265 Q292 285 274 265" style="stroke-width:3"/>
+
+      <!-- switch A upper branch -->
+      <g id="parallelAGroup" class="switch-hit">
+        <circle class="node" cx="215" cy="80" r="7"/>
+        <circle class="node" cx="280" cy="80" r="7"/>
+        <line id="parallelAArm" class="switch-arm open" x1="215" y1="80" x2="280" y2="80"/>
+        <rect x="198" y="45" width="98" height="70" fill="transparent"/>
+        <text x="226" y="37" font-size="18">開關 A</text>
+      </g>
+
+      <!-- switch B lower branch -->
+      <g id="parallelBGroup" class="switch-hit">
+        <circle class="node" cx="215" cy="145" r="7"/>
+        <circle class="node" cx="280" cy="145" r="7"/>
+        <line id="parallelBArm" class="switch-arm open" x1="215" y1="145" x2="280" y2="145"/>
+        <rect x="198" y="110" width="98" height="70" fill="transparent"/>
+        <text x="226" y="190" font-size="18">開關 B</text>
+      </g>
+    </svg>
+
+    <div id="parallelStatus" class="status">燈泡：熄滅</div>
+    <div class="controls">
+      <button id="parallelABtn">A：開路</button>
+      <button id="parallelBBtn">B：開路</button>
+    </div>
+    <div class="hint">並聯邏輯：A OR B</div>
+  </section>
+
+  <!-- 樓梯雙切 -->
+  <section class="card">
+    <h2>樓梯雙切電路</h2>
+    <div class="logic">任一個開關切換，都會改變燈泡的亮／滅。</div>
+
+    <svg viewBox="0 0 520 330" aria-label="樓梯雙切電路">
+      <!-- battery and lamp loop -->
+      <path class="wire" d="M80 250 L80 95 L145 95" />
+      <path class="wire" d="M375 95 L440 95 L440 250 L340 250" />
+      <path class="wire" d="M180 250 L80 250" />
+      <path class="wire" d="M340 250 L245 250" />
+
+      <!-- traveller wires -->
+      <path class="wire" d="M210 70 L310 70" />
+      <path class="wire" d="M210 120 L310 120" />
+
+      <!-- battery -->
+      <line class="battery" x1="180" y1="225" x2="180" y2="275" />
+      <line class="battery" x1="210" y1="235" x2="210" y2="265" />
+      <text x="166" y="215" font-size="20">+</text>
+      <text x="205" y="215" font-size="20">−</text>
+
+      <!-- bulb -->
+      <circle id="stairBulb" class="bulb on" cx="292" cy="250" r="34"/>
+      <path class="wire" d="M274 235 Q292 215 310 235 Q292 250 310 265 Q292 285 274 265" style="stroke-width:3"/>
+
+      <!-- switch A common and throws -->
+      <circle class="node" cx="145" cy="95" r="7"/>
+      <circle class="node" cx="210" cy="70" r="7"/>
+      <circle class="node" cx="210" cy="120" r="7"/>
+      <g id="stairAGroup" class="switch-hit">
+        <line id="stairAArm" class="switch-arm" x1="145" y1="95" x2="210" y2="70"/>
+        <rect x="128" y="52" width="100" height="85" fill="transparent"/>
+        <text x="150" y="42" font-size="18">開關 A</text>
+      </g>
+
+      <!-- switch B common and throws -->
+      <circle class="node" cx="375" cy="95" r="7"/>
+      <circle class="node" cx="310" cy="70" r="7"/>
+      <circle class="node" cx="310" cy="120" r="7"/>
+      <g id="stairBGroup" class="switch-hit">
+        <line id="stairBArm" class="switch-arm" x1="375" y1="95" x2="310" y2="70"/>
+        <rect x="292" y="52" width="100" height="85" fill="transparent"/>
+        <text x="330" y="42" font-size="18">開關 B</text>
+      </g>
+    </svg>
+
+    <div id="stairStatus" class="status on">燈泡：亮起</div>
+    <div class="controls">
+      <button id="stairABtn" class="closed">A：上路</button>
+      <button id="stairBBtn" class="closed">B：上路</button>
+    </div>
+    <div class="hint">雙切邏輯：兩個開關接在同一路徑時，燈泡亮</div>
+  </section>
+
+</main>
+
+<script>
+  const state = {
+    series: {A:false, B:false},
+    parallel: {A:false, B:false},
+    stair: {A:0, B:0}
+  };
+
+  function setSwitch(prefix, key, closed){
+    state[prefix][key] = closed;
+
+    const arm = document.getElementById(prefix + key + 'Arm');
+    const btn = document.getElementById(prefix + key + 'Btn');
+
+    arm.classList.toggle('open', !closed);
+    btn.classList.toggle('closed', closed);
+    btn.textContent = key + '：' + (closed ? '閉合' : '開路');
+
+    updateCircuit(prefix);
+  }
+
+  function updateCircuit(prefix){
+    const s = state[prefix];
+    const on = prefix === 'series' ? (s.A && s.B) : (s.A || s.B);
+
+    const bulb = document.getElementById(prefix + 'Bulb');
+    const status = document.getElementById(prefix + 'Status');
+
+    bulb.classList.toggle('on', on);
+    status.classList.toggle('on', on);
+    status.textContent = '燈泡：' + (on ? '亮起' : '熄滅');
+  }
+
+  function bind(prefix, key){
+    const group = document.getElementById(prefix + key + 'Group');
+    const btn = document.getElementById(prefix + key + 'Btn');
+
+    const toggle = () => setSwitch(prefix, key, !state[prefix][key]);
+    group.addEventListener('click', toggle);
+    btn.addEventListener('click', toggle);
+  }
+
+  bind('series', 'A');
+  bind('series', 'B');
+  bind('parallel', 'A');
+  bind('parallel', 'B');
+
+  function setStairSwitch(key, position){
+    state.stair[key] = position;
+
+    const arm = document.getElementById('stair' + key + 'Arm');
+    const btn = document.getElementById('stair' + key + 'Btn');
+
+    if(key === 'A'){
+      arm.setAttribute('x1', '145');
+      arm.setAttribute('y1', '95');
+      arm.setAttribute('x2', '210');
+      arm.setAttribute('y2', position === 0 ? '70' : '120');
+    }else{
+      arm.setAttribute('x1', '375');
+      arm.setAttribute('y1', '95');
+      arm.setAttribute('x2', '310');
+      arm.setAttribute('y2', position === 0 ? '70' : '120');
+    }
+
+    btn.textContent = key + '：' + (position === 0 ? '上路' : '下路');
+    btn.classList.toggle('closed', position === 0);
+
+    updateStair();
+  }
+
+  function updateStair(){
+    const on = state.stair.A === state.stair.B;
+    const bulb = document.getElementById('stairBulb');
+    const status = document.getElementById('stairStatus');
+
+    bulb.classList.toggle('on', on);
+    status.classList.toggle('on', on);
+    status.textContent = '燈泡：' + (on ? '亮起' : '熄滅');
+  }
+
+  function bindStair(key){
+    const group = document.getElementById('stair' + key + 'Group');
+    const btn = document.getElementById('stair' + key + 'Btn');
+
+    const toggle = () => setStairSwitch(key, state.stair[key] === 0 ? 1 : 0);
+    group.addEventListener('click', toggle);
+    btn.addEventListener('click', toggle);
+  }
+
+  bindStair('A');
+  bindStair('B');
+  updateStair();
+
+</script>
+</body>
+</html>
